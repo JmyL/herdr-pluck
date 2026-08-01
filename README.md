@@ -12,10 +12,7 @@ Invoke an action while a pane is focused and type the displayed hint for the ite
 - For release installs, a download tool:
     - `curl` or `wget`
 - Rust/Cargo only when forcing a source build or when no matching prebuilt binary is available
-- For copying, a system clipboard command:
-    - macOS: `pbcopy`
-    - Linux Wayland: `wl-copy`
-    - Linux X11: `xclip` or `xsel`
+- Copying uses OSC 52 so Herdr can forward the selection to the foreground client clipboard (no `wl-copy`/`pbcopy`/`xclip` required)
 - For opening URLs:
     - macOS: `open`
     - Linux: `xdg-open`
@@ -25,7 +22,7 @@ Invoke an action while a pane is focused and type the displayed hint for the ite
 From the remote repository:
 
 ```bash
-herdr plugin install rmarganti/herdr-pluck
+herdr plugin install JmyL/herdr-pluck --ref osc52-clipboard
 ```
 
 Published releases provide prebuilt binaries for these targets:
@@ -36,7 +33,7 @@ Published releases provide prebuilt binaries for these targets:
 To install a specific branch, tag, or commit, pass `--ref`:
 
 ```bash
-herdr plugin install rmarganti/herdr-pluck --ref main
+herdr plugin install JmyL/herdr-pluck --ref main
 ```
 
 Install first downloads the GitHub Release asset matching the version in `herdr-plugin.toml`. If that asset is unavailable, it falls back to a local Cargo build when Rust is available.
@@ -183,4 +180,4 @@ herdr plugin action list --plugin rmarganti.herdr-pluck
 
 If no release asset matches the plugin version, make sure Rust/Cargo is available for the local fallback build. Set `HERDR_PLUCK_BUILD_FROM_SOURCE=1` to skip the release download and build the checked-out source explicitly.
 
-If copying fails, install one of the supported clipboard tools for your platform and try again.
+If copying fails, confirm Herdr is forwarding OSC 52 clipboard writes from plugin panes to the foreground client.

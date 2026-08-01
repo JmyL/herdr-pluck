@@ -369,8 +369,8 @@ mod tests {
     fn clipboard_failure_is_reported_and_not_treated_as_success() {
         let mut input = FakeInput::new(vec![PickerInputEvent::Char('a')]);
         let clipboard = FakeClipboard {
-            error: Some(ClipboardError::NoToolFound {
-                tried: "fake-copy".to_string(),
+            error: Some(ClipboardError::WriteFailed {
+                message: "fake-copy".to_string(),
             }),
             ..FakeClipboard::default()
         };
