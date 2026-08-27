@@ -16,17 +16,21 @@ impl UrlOpenCommandRunner for SystemCommandRunner {
 
     fn run(&self, tool: UrlOpenTool, url: &str, focus: bool) -> Result<(), UrlOpenError> {
         let focus_value = if focus { "1" } else { "0" };
-        let mut child = Command::new(tool.name)
+        let mut command = Command::new(tool.name);
+        command
             .arg(url)
             .env("XDG_OPEN_FOCUS", focus_value)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|error| UrlOpenError::SpawnFailed {
-                tool: tool.name.to_string(),
-                message: error.to_string(),
-            })?;
+            .stderr(Stdio::null());
+        if !focus {
+            command.env_remove("XDG_ACTIVATION_TOKEN");
+            command.env_remove("DESKTOP_STARTUP_ID");
+        }
+        let mut child = command.spawn().map_err(|error| UrlOpenError::SpawnFailed {
+            tool: tool.name.to_string(),
+            message: error.to_string(),
+        })?;
         let status = child.wait().map_err(|error| UrlOpenError::WaitFailed {
             tool: tool.name.to_string(),
             message: error.to_string(),
