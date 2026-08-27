@@ -4,9 +4,9 @@ use anyhow::{Context, Result};
 /**
  * Opens a selected picker URL and attaches user-facing context on failure.
  */
-pub(crate) fn open_selected_url(opener: &impl UrlOpener, url: &str) -> Result<()> {
+pub(crate) fn open_selected_url(opener: &impl UrlOpener, url: &str, focus: bool) -> Result<()> {
     opener
-        .open(url)
+        .open(url, focus)
         .map(|_| ())
         .map_err(|error| open_error(url, error))
 }

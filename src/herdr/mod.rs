@@ -49,15 +49,20 @@ impl HerdrAdapter {
     /**
      * Opens the picker that launches browser-openable visible URLs.
      */
-    pub fn open_url_picker(&self, target: &PaneId) -> Result<()> {
-        self.open_picker(target, PickerAction::OpenUrl)
+    pub fn open_url_picker(&self, target: &PaneId, focus: bool) -> Result<()> {
+        let action = if focus {
+            PickerAction::OpenUrlAndFocus
+        } else {
+            PickerAction::OpenUrl
+        };
+        self.open_picker(target, action)
     }
 
     fn open_picker(&self, target: &PaneId, action: PickerAction) -> Result<()> {
         let binary = std::env::current_exe().context("failed to locate herdr-pluck binary")?;
         let patterns = match action {
             PickerAction::Copy => resolve_pattern_specs(self.context.focused_pane_cwd().as_deref()),
-            PickerAction::OpenUrl => Vec::new(),
+            PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => Vec::new(),
         };
         let mut client = SocketHerdrClient::from_context(&self.context)?;
         launch_layout_tab_picker(&mut client, target, &binary, action, patterns)?;

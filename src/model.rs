@@ -166,6 +166,19 @@ pub enum PickerAction {
     #[default]
     Copy,
     OpenUrl,
+    OpenUrlAndFocus,
+}
+
+impl PickerAction {
+    /// Whether this action opens a URL instead of copying a token.
+    pub fn opens_url(self) -> bool {
+        matches!(self, Self::OpenUrl | Self::OpenUrlAndFocus)
+    }
+
+    /// Whether a successful URL open should move compositor focus to the browser.
+    pub fn focuses_browser(self) -> bool {
+        matches!(self, Self::OpenUrlAndFocus)
+    }
 }
 
 /// Full picker launch payload passed from the action process to picker mode.

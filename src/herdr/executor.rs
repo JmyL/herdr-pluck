@@ -68,7 +68,7 @@ pub fn launch_layout_tab_picker<C: HerdrClient>(
         .context("pane layout did not include workspace id")?;
     let tab_label = match action {
         PickerAction::Copy => "Herdr Pluck",
-        PickerAction::OpenUrl => "Herdr Pluck: Open URL",
+        PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => "Herdr Pluck: Open URL",
     };
     let applied = match client.apply_layout(workspace_id, tab_label, &root) {
         Ok(value) => value,

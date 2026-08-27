@@ -21,7 +21,7 @@ pub struct OpenUrlSuccess {
  * Opens URLs through the system's default handler.
  */
 pub trait UrlOpener {
-    fn open(&self, url: &str) -> Result<OpenUrlSuccess, UrlOpenError>;
+    fn open(&self, url: &str, focus: bool) -> Result<OpenUrlSuccess, UrlOpenError>;
 }
 
 /**
@@ -31,13 +31,19 @@ pub trait UrlOpener {
 pub struct SystemUrlOpener;
 
 impl UrlOpener for SystemUrlOpener {
-    fn open(&self, url: &str) -> Result<OpenUrlSuccess, UrlOpenError> {
-        open_with_runner(url, &SystemCommandRunner, UrlOpenEnvironment::current())
+    fn open(&self, url: &str, focus: bool) -> Result<OpenUrlSuccess, UrlOpenError> {
+        open_with_runner(
+            url,
+            focus,
+            &SystemCommandRunner,
+            UrlOpenEnvironment::current(),
+        )
     }
 }
 
 fn open_with_runner(
     url: &str,
+    focus: bool,
     runner: &impl UrlOpenCommandRunner,
     env: UrlOpenEnvironment,
 ) -> Result<OpenUrlSuccess, UrlOpenError> {
@@ -45,7 +51,7 @@ fn open_with_runner(
     if !runner.command_exists(tool.name) {
         return Err(UrlOpenError::NoToolFound { tool: tool.name });
     }
-    runner.run(tool, url)?;
+    runner.run(tool, url, focus)?;
     Ok(OpenUrlSuccess {
         tool: tool.name.to_string(),
     })
@@ -59,7 +65,7 @@ mod tests {
     #[derive(Default)]
     struct FakeRunner {
         available: bool,
-        runs: RefCell<Vec<(&'static str, String)>>,
+        runs: RefCell<Vec<(&'static str, String, bool)>>,
         failure: Option<UrlOpenError>,
     }
 
@@ -68,8 +74,10 @@ mod tests {
             self.available
         }
 
-        fn run(&self, tool: UrlOpenTool, url: &str) -> Result<(), UrlOpenError> {
-            self.runs.borrow_mut().push((tool.name, url.to_string()));
+        fn run(&self, tool: UrlOpenTool, url: &str, focus: bool) -> Result<(), UrlOpenError> {
+            self.runs
+                .borrow_mut()
+                .push((tool.name, url.to_string(), focus));
             self.failure.clone().map_or(Ok(()), Err)
         }
     }
@@ -82,6 +90,7 @@ mod tests {
         };
         let success = open_with_runner(
             "https://example.com/a b",
+            false,
             &runner,
             UrlOpenEnvironment::Macos,
         )
@@ -90,7 +99,7 @@ mod tests {
         assert_eq!(success.tool, "open");
         assert_eq!(
             runner.runs.borrow()[0],
-            ("open", "https://example.com/a b".into())
+            ("open", "https://example.com/a b".into(), false)
         );
     }
 
@@ -100,15 +109,19 @@ mod tests {
             available: true,
             ..FakeRunner::default()
         };
-        open_with_runner("file:///tmp/test", &runner, UrlOpenEnvironment::Linux).unwrap();
+        open_with_runner("file:///tmp/test", true, &runner, UrlOpenEnvironment::Linux).unwrap();
 
-        assert_eq!(runner.runs.borrow()[0].0, "xdg-open");
+        assert_eq!(
+            runner.runs.borrow()[0],
+            ("xdg-open", "file:///tmp/test".into(), true)
+        );
     }
 
     #[test]
     fn reports_missing_and_unsupported_launchers() {
         let error = open_with_runner(
             "https://example.com",
+            false,
             &FakeRunner::default(),
             UrlOpenEnvironment::Linux,
         )
@@ -117,6 +130,7 @@ mod tests {
 
         let error = open_with_runner(
             "https://example.com",
+            false,
             &FakeRunner::default(),
             UrlOpenEnvironment::Unsupported,
         )

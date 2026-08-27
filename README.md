@@ -61,6 +61,7 @@ The action ids are:
 ```text
 rmarganti.herdr-pluck.pluck
 rmarganti.herdr-pluck.open-url
+rmarganti.herdr-pluck.open-url-and-focus
 ```
 
 ## Keybinding
@@ -85,6 +86,16 @@ command = "rmarganti.herdr-pluck.open-url"
 description = "open visible URL"
 ```
 
+`open-url` launches the system handler and leaves window focus where it is. To also focus the browser afterward (Linux Sway `xdg-open` wrapper honoring `XDG_OPEN_FOCUS`), bind `open-url-and-focus`:
+
+```toml
+[[keys.command]]
+key = "prefix+shift+o"
+type = "plugin_action"
+command = "rmarganti.herdr-pluck.open-url-and-focus"
+description = "open visible URL and focus browser"
+```
+
 Reload Herdr config after editing:
 
 ```bash
@@ -99,13 +110,14 @@ herdr server reload-config
 4. Type the shown one- or two-letter hint to copy that token and close the picker.
 5. Press Escape or Ctrl-C to cancel without copying.
 
-The `open-url` action uses the same picker flow, but shows only `http://`, `https://`, and `file://` URLs and opens the selected URL through the system default handler without changing the clipboard.
+The `open-url` action uses the same picker flow, but shows only `http://`, `https://`, and `file://` URLs and opens the selected URL through the system default handler without changing the clipboard. `open-url-and-focus` is the same picker, then asks the opener to move compositor focus to the browser (`XDG_OPEN_FOCUS=1`).
 
-You can also invoke either action from the CLI:
+You can also invoke these actions from the CLI:
 
 ```bash
 herdr plugin action invoke rmarganti.herdr-pluck.pluck
 herdr plugin action invoke rmarganti.herdr-pluck.open-url
+herdr plugin action invoke rmarganti.herdr-pluck.open-url-and-focus
 ```
 
 ## What gets matched

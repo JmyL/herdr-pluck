@@ -43,7 +43,7 @@ pub fn build_picker_view(snapshot: &PickerSnapshot) -> PickerView {
             let custom_patterns = compile_pattern_specs(&snapshot.custom_patterns);
             find_matches(logical_lines, &custom_patterns)
         }
-        PickerAction::OpenUrl => find_openable_urls(logical_lines),
+        PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => find_openable_urls(logical_lines),
     };
     let assignments = assign_hints(matches.clone());
 
@@ -132,7 +132,9 @@ fn no_matches_view(action: PickerAction, width: u16, height: u16) -> Vec<RenderL
     let mut lines = Vec::with_capacity(height);
     let message = match action {
         PickerAction::Copy => "Herdr Pluck: no copyable matches found",
-        PickerAction::OpenUrl => "Herdr Pluck: no openable URLs found",
+        PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => {
+            "Herdr Pluck: no openable URLs found"
+        }
     };
     let hint = "Press any non-Enter key to close";
 

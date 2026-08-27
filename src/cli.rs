@@ -29,6 +29,9 @@ pub enum Command {
         /// Override the pane to pluck from. Defaults to Herdr invocation context.
         #[arg(long)]
         target_pane: Option<String>,
+        /// After opening, ask the URL opener to focus the browser window.
+        #[arg(long)]
+        focus: bool,
     },
 
     /// Picker entrypoint: run inside the temporary layout-tab target pane.
@@ -58,9 +61,9 @@ pub fn run_with(cli: Cli) -> Result<()> {
             let target = resolve_target(&adapter, target_pane)?;
             adapter.open_copy_picker(&target)?;
         }
-        Command::OpenUrl { target_pane } => {
+        Command::OpenUrl { target_pane, focus } => {
             let target = resolve_target(&adapter, target_pane)?;
-            adapter.open_url_picker(&target)?;
+            adapter.open_url_picker(&target, focus)?;
         }
         Command::Pick { snapshot, ready } => {
             adapter.run_picker_from_snapshot(&snapshot, &ready)?;

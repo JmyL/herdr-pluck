@@ -62,10 +62,12 @@ where
                             text: text.to_string(),
                         })
                     }
-                    PickerAction::OpenUrl => {
-                        open_selected_url(url_opener, text).map(|()| PickerOutcome::OpenedUrl {
-                            url: text.to_string(),
-                        })
+                    PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => {
+                        open_selected_url(url_opener, text, snapshot.action.focuses_browser()).map(
+                            |()| PickerOutcome::OpenedUrl {
+                                url: text.to_string(),
+                            },
+                        )
                     }
                 };
                 if let Err(error) = outcome {
@@ -98,7 +100,7 @@ fn emit_selection_failure(
 ) -> Result<()> {
     let verb = match action {
         PickerAction::Copy => "copy",
-        PickerAction::OpenUrl => "open",
+        PickerAction::OpenUrl | PickerAction::OpenUrlAndFocus => "open",
     };
     let message = format!("Herdr Pluck: failed to {verb} {text:?}: {error}");
     let lines = vec![RenderLine {
@@ -161,13 +163,17 @@ mod tests {
 
     #[derive(Default)]
     struct FakeUrlOpener {
-        opened: RefCell<Vec<String>>,
+        opened: RefCell<Vec<(String, bool)>>,
         error: Option<UrlOpenError>,
     }
 
     impl UrlOpener for FakeUrlOpener {
-        fn open(&self, url: &str) -> std::result::Result<OpenUrlSuccess, UrlOpenError> {
-            self.opened.borrow_mut().push(url.to_string());
+        fn open(
+            &self,
+            url: &str,
+            focus: bool,
+        ) -> std::result::Result<OpenUrlSuccess, UrlOpenError> {
+            self.opened.borrow_mut().push((url.to_string(), focus));
             self.error.clone().map_or_else(
                 || {
                     Ok(OpenUrlSuccess {
@@ -250,7 +256,31 @@ mod tests {
         assert!(clipboard.copied.borrow().is_empty());
         assert_eq!(
             opener.opened.borrow().as_slice(),
-            &["https://example.com/path"]
+            &[("https://example.com/path".to_string(), false)]
+        );
+    }
+
+    #[test]
+    fn open_url_and_focus_hint_asks_opener_to_focus() {
+        let mut snapshot = snapshot(vec!["open https://example.com/path"], 40, 1);
+        snapshot.action = PickerAction::OpenUrlAndFocus;
+        let mut input = FakeInput::new(vec![PickerInputEvent::Char('a')]);
+        let clipboard = FakeClipboard::default();
+        let opener = FakeUrlOpener::default();
+        let mut output = Vec::new();
+
+        let outcome =
+            run_picker_with(&snapshot, &mut input, &clipboard, &opener, &mut output).unwrap();
+
+        assert_eq!(
+            outcome,
+            PickerOutcome::OpenedUrl {
+                url: "https://example.com/path".to_string()
+            }
+        );
+        assert_eq!(
+            opener.opened.borrow().as_slice(),
+            &[("https://example.com/path".to_string(), true)]
         );
     }
 

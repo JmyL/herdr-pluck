@@ -60,9 +60,6 @@ mod tests {
     fn write_osc52_encodes_utf8_payload() {
         let mut out = Vec::new();
         write_osc52(&mut out, "https://example.com".as_bytes()).unwrap();
-        assert_eq!(
-            out,
-            b"\x1b]52;c;aHR0cHM6Ly9leGFtcGxlLmNvbQ==\x07"
-        );
+        assert_eq!(out, b"\x1b]52;c;aHR0cHM6Ly9leGFtcGxlLmNvbQ==\x07");
     }
 }

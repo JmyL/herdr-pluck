@@ -14,9 +14,11 @@ impl UrlOpenCommandRunner for SystemCommandRunner {
         which::which(command).is_ok()
     }
 
-    fn run(&self, tool: UrlOpenTool, url: &str) -> Result<(), UrlOpenError> {
+    fn run(&self, tool: UrlOpenTool, url: &str, focus: bool) -> Result<(), UrlOpenError> {
+        let focus_value = if focus { "1" } else { "0" };
         let mut child = Command::new(tool.name)
             .arg(url)
+            .env("XDG_OPEN_FOCUS", focus_value)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
