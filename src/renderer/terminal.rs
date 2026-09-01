@@ -1,22 +1,30 @@
 use crate::model::{RenderLine, RenderStyle};
+use crate::theme::PickerPalette;
 use anyhow::Result;
 use crossterm::{
     cursor::MoveTo,
     queue,
-    style::{
-        Attribute, Color, Print, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor,
-    },
+    style::{Attribute, Print, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
 use std::io::Write;
 
-/// Emits abstract picker render lines to a terminal writer using v1 styling.
+/// Emits abstract picker render lines to a terminal writer using the current Herdr theme.
 pub fn emit_render_lines(writer: &mut impl Write, lines: &[RenderLine]) -> Result<()> {
+    emit_render_lines_with_palette(writer, lines, &PickerPalette::load())
+}
+
+/// Emits picker lines with an explicit palette so tests can pin contrast colors.
+pub fn emit_render_lines_with_palette(
+    writer: &mut impl Write,
+    lines: &[RenderLine],
+    palette: &PickerPalette,
+) -> Result<()> {
     queue!(writer, Clear(ClearType::All), MoveTo(0, 0))?;
 
     for (line_index, line) in lines.iter().enumerate() {
         for span in &line.spans {
-            queue_style(writer, span.style)?;
+            queue_style(writer, span.style, palette)?;
             queue!(writer, Print(&span.text))?;
         }
         if line_index + 1 < lines.len() {
@@ -28,23 +36,28 @@ pub fn emit_render_lines(writer: &mut impl Write, lines: &[RenderLine]) -> Resul
     Ok(())
 }
 
-fn queue_style(writer: &mut impl Write, style: RenderStyle) -> Result<()> {
+fn queue_style(writer: &mut impl Write, style: RenderStyle, palette: &PickerPalette) -> Result<()> {
     match style {
-        RenderStyle::Unmatched => queue!(
-            writer,
-            SetForegroundColor(Color::DarkGrey),
-            SetAttribute(Attribute::Dim)
-        )?,
+        RenderStyle::Unmatched => {
+            queue!(
+                writer,
+                SetAttribute(Attribute::Reset),
+                SetForegroundColor(palette.unmatched_fg)
+            )?;
+            if palette.dim_unmatched {
+                queue!(writer, SetAttribute(Attribute::Dim))?;
+            }
+        }
         RenderStyle::Match => queue!(
             writer,
             SetAttribute(Attribute::Reset),
-            SetForegroundColor(Color::Yellow)
+            SetForegroundColor(palette.match_fg)
         )?,
         RenderStyle::Hint => queue!(
             writer,
             SetAttribute(Attribute::Reset),
-            SetForegroundColor(Color::Black),
-            SetBackgroundColor(Color::Cyan),
+            SetForegroundColor(palette.hint_fg),
+            SetBackgroundColor(palette.hint_bg),
             SetAttribute(Attribute::Bold)
         )?,
     }
@@ -55,10 +68,10 @@ fn queue_style(writer: &mut impl Write, style: RenderStyle) -> Result<()> {
 mod tests {
     use super::*;
     use crate::model::{RenderSpan, RenderStyle};
+    use crate::theme::Appearance;
 
-    #[test]
-    fn terminal_emission_clears_screen_and_writes_all_spans() {
-        let lines = vec![RenderLine {
+    fn sample_line() -> Vec<RenderLine> {
+        vec![RenderLine {
             spans: vec![
                 RenderSpan {
                     text: "open ".to_string(),
@@ -73,10 +86,18 @@ mod tests {
                     style: RenderStyle::Match,
                 },
             ],
-        }];
-        let mut output = Vec::new();
+        }]
+    }
 
-        emit_render_lines(&mut output, &lines).unwrap();
+    #[test]
+    fn terminal_emission_clears_screen_and_writes_all_spans() {
+        let mut output = Vec::new();
+        emit_render_lines_with_palette(
+            &mut output,
+            &sample_line(),
+            &PickerPalette::for_appearance(Appearance::Dark),
+        )
+        .unwrap();
         let output = String::from_utf8(output).unwrap();
 
         assert!(output.starts_with("\u{1b}[2J\u{1b}[1;1H"));
@@ -86,6 +107,24 @@ mod tests {
         assert!(output.contains("\u{1b}[38;5;0m"));
         assert!(output.contains("\u{1b}[48;5;14m"));
         assert!(output.contains("\u{1b}[38;5;11m"));
+    }
+
+    #[test]
+    fn light_theme_hint_badge_uses_truecolor_white_on_blue() {
+        let mut output = Vec::new();
+        emit_render_lines_with_palette(
+            &mut output,
+            &sample_line(),
+            &PickerPalette::for_appearance(Appearance::Light),
+        )
+        .unwrap();
+        let output = String::from_utf8(output).unwrap();
+
+        assert!(output.contains("\u{1b}[38;2;255;255;255m"));
+        assert!(output.contains("\u{1b}[48;2;30;102;245m"));
+        assert!(output.contains("\u{1b}[38;2;30;102;245m"));
+        assert!(!output.contains("\u{1b}[38;5;0m"));
+        assert!(!output.contains("\u{1b}[48;5;14m"));
     }
 
     #[test]
@@ -106,7 +145,12 @@ mod tests {
         ];
         let mut output = Vec::new();
 
-        emit_render_lines(&mut output, &lines).unwrap();
+        emit_render_lines_with_palette(
+            &mut output,
+            &lines,
+            &PickerPalette::for_appearance(Appearance::Dark),
+        )
+        .unwrap();
         let output = String::from_utf8(output).unwrap();
 
         assert!(strip_ansi(&output).contains("one\r\ntwo"));
