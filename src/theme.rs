@@ -28,8 +28,9 @@ impl PickerPalette {
 
     /// Returns high-contrast picker colors for a known appearance.
     ///
-    /// Dark keeps the original ANSI Black-on-Cyan hints. Light uses truecolor
-    /// because Catppuccin Latte remaps those ANSI slots to similar luminances.
+    /// Dark keeps the original ANSI Black-on-Cyan hints. Light uses 256-color
+    /// cube indexes, not 24-bit RGB: Herdr panes advertise truecolor, but
+    /// `48;2;…` cell backgrounds often drop and leave only the blue foreground.
     pub fn for_appearance(appearance: Appearance) -> Self {
         match appearance {
             Appearance::Dark => Self {
@@ -40,11 +41,11 @@ impl PickerPalette {
                 hint_bg: Color::Cyan,
             },
             Appearance::Light => Self {
-                unmatched_fg: rgb(108, 111, 133),
+                unmatched_fg: ansi(102),
                 dim_unmatched: false,
-                match_fg: rgb(30, 102, 245),
-                hint_fg: rgb(255, 255, 255),
-                hint_bg: rgb(30, 102, 245),
+                match_fg: ansi(27),
+                hint_fg: ansi(231),
+                hint_bg: ansi(27),
             },
         }
     }
@@ -113,8 +114,8 @@ fn home_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("/"))
 }
 
-fn rgb(r: u8, g: u8, b: u8) -> Color {
-    Color::Rgb { r, g, b }
+fn ansi(n: u8) -> Color {
+    Color::AnsiValue(n)
 }
 
 #[cfg(test)]
@@ -162,11 +163,11 @@ mod tests {
     }
 
     #[test]
-    fn light_palette_uses_truecolor_hint_badge() {
+    fn light_palette_uses_256color_hint_badge() {
         let palette = PickerPalette::for_appearance(Appearance::Light);
-        assert_eq!(palette.hint_fg, rgb(255, 255, 255));
-        assert_eq!(palette.hint_bg, rgb(30, 102, 245));
-        assert_eq!(palette.match_fg, rgb(30, 102, 245));
+        assert_eq!(palette.hint_fg, ansi(231));
+        assert_eq!(palette.hint_bg, ansi(27));
+        assert_eq!(palette.match_fg, ansi(27));
         assert!(!palette.dim_unmatched);
     }
 }

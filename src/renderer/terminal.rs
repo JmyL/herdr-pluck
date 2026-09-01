@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn light_theme_hint_badge_uses_truecolor_white_on_blue() {
+    fn light_theme_hint_badge_uses_256color_white_on_blue() {
         let mut output = Vec::new();
         emit_render_lines_with_palette(
             &mut output,
@@ -120,11 +120,11 @@ mod tests {
         .unwrap();
         let output = String::from_utf8(output).unwrap();
 
-        assert!(output.contains("\u{1b}[38;2;255;255;255m"));
-        assert!(output.contains("\u{1b}[48;2;30;102;245m"));
-        assert!(output.contains("\u{1b}[38;2;30;102;245m"));
-        assert!(!output.contains("\u{1b}[38;5;0m"));
-        assert!(!output.contains("\u{1b}[48;5;14m"));
+        assert!(output.contains("\u{1b}[38;5;231m"));
+        assert!(output.contains("\u{1b}[48;5;27m"));
+        assert!(output.contains("\u{1b}[38;5;27m"));
+        assert!(!output.contains("\u{1b}[38;2;"));
+        assert!(!output.contains("\u{1b}[48;2;"));
     }
 
     #[test]
